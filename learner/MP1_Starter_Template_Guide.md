@@ -49,7 +49,7 @@ Create a `.env` file in the project root, next to `requirements.txt`:
 
 ```dotenv
 OPENAI_API_KEY=your_api_key
-OPENAI_BASE_URL=https://openai.vocareum.com/v1
+OPENAI_BASE_URL=https://openai.com/v1
 ```
 
 `OPENAI_BASE_URL` is optional; the script defaults to the URL shown above. Set it to the endpoint for your API provider if different. Keep `.env` private and do not commit credentials.
