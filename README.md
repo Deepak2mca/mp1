@@ -1,95 +1,90 @@
-# MP1 · Prompt Lab — Compare LLM Strategies on a Task
+# MP1 Prompt Lab Script Guide
 
-> *Mini Project 1 · Week 5 deliverable · Foundations phase closing.
-> Doable in 3 days. Revision of W1-W5 skills via one integrative build.*
+This guide covers the features and setup for [`MP1_Starter_Template.py`](./MP1_Starter_Template.py).
 
----
+## What the script does
 
-## What this package contains
+The script compares four prompting strategies for extracting information from job postings:
 
-### For learners
+- **Zero-shot:** asks for the fields without examples or a persona.
+- **Few-shot:** includes worked examples.
+- **Structured:** provides a recruiter persona and explicit output requirements.
+- **Chain-of-thought:** asks the model to analyze the posting before returning JSON.
 
-| File | Purpose |
-|---|---|
-| `learner/MP1_Brief.md` | Project brief — what to build, in what shape, what to submit |
-| `learner/MP1_Starter_Template.ipynb` | Notebook skeleton with TODOs |
-| `learner/MP1_FAQ.md` | Anticipated questions + answers |
-| `data/job_snippets.jsonl` | 10 job postings (the task input) |
-| `data/golden_set.jsonl` | Reference extractions for scoring |
-| `requirements.txt` | Python dependencies |
+For each posting, it requests `company`, `role`, and `years_experience_required`. It then:
 
-### For instructors / graders
+1. Runs one extraction request per posting and strategy asynchronously.
+2. Parses the JSON response and records the result, token counts, latency, estimated extraction cost, and any extraction error.
+3. Compares each result with the golden set, scoring exact field matches from 0 to 3.
+4. Uses a `gpt-4o` judge to assign a score from 1 to 4.
+5. Prints a pandas summary grouped by strategy, including mean accuracy, parse rate, mean judge score, total estimated cost, and median latency.
 
-| File | Purpose |
-|---|---|
-| `instructor/MP1_Rubric.md` | Scoring rubric (1-4 scale, four dimensions) |
-| `instructor/MP1_Solution_Document.md` | Reference solution walk-through + expected numbers + what to look for |
-| `instructor/MP1_Reference_Solution.ipynb` | Complete working solution notebook |
-| `instructor/MP1_Reference_Solution.py` | Same as runnable script (for CI spot-checks) |
-| `instructor/MP1_Sample_Submission.md` | What a strong learner's writeup looks like |
+The **Total cost ($)** column estimates extraction requests only; judge-request usage is not included. Running the script makes paid API requests.
 
----
+## Requirements
 
-## At a glance
+- Python 3.10 or newer
+- An API key for the configured OpenAI-compatible service
+- The project data files:
+  - `data/job_snippets.jsonl`
+  - `data/golden_set.jsonl`
 
-- **Project:** Compare 4 prompting strategies (zero-shot, few-shot, structured, chain-of-thought) on a structured extraction task.
-- **Task:** Extract `company`, `role`, and `years_experience_required` from a job posting snippet.
-- **Inputs:** 10 job snippets (provided)
-- **Golden set:** 10 reference extractions (provided)
-- **Effort:** ~5-8 hours over 3 days
-- **Spend:** ~$0.05 to $0.20 on OpenAI API calls
-- **Submission:** Notebook + 1-page writeup
+Install the Python dependencies from the project root:
 
----
-
-## Where this fits in the curriculum
-
-MP1 sits at the **closing of Phase 1 (Foundations)** — the same week as M1 / DR #1.
-
-It's deliberately small. The point isn't to test new skills; it's to give learners one integrative build that touches everything they learned in W1-W5:
-
-| W1-W5 skill | How MP1 exercises it |
-|---|---|
-| W1 — System prompt leverage | The 4 strategies *are* 4 different prompting choices |
-| W2 — Async batch pipeline | Run 10 inputs × 4 strategies = 40 calls in parallel |
-| W3 — Clean code structure | Single notebook with logical section breaks |
-| W4 — Cost + latency tracking | Each strategy reports cost/latency for comparison |
-| W5 — Golden set + LLM judge | The scoring step uses the W5 judge pattern |
-
-No new concepts. No new tools. Just revision via integration.
-
----
-
-## How to grade
-
-Open `instructor/MP1_Solution_Document.md` first — it walks through what a strong submission looks like, with expected numbers and common mistakes to watch for.
-
-Then use `instructor/MP1_Rubric.md` for the actual scoring. Four dimensions (Completion · Correctness · Reflection · Code Quality), each 1-4. Generous rubric — effort and clarity over perfection.
-
----
-
-## Where this lives in the cohort's repo
-
-```
-capstone-repo/
-├── (W1-W5 lab work)
-├── mp1/
-│   ├── mp1_prompt_lab.ipynb       # or .py
-│   ├── data/                       # symlink or copy of provided data
-│   └── mp1_writeup.md              # the 1-page reflection
-└── docs/
-    └── adr/0002-prompting-strategy.md   # optional ADR if they want one
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
----
+If PowerShell blocks activation, run the interpreter and pip directly:
 
-## Constraints (locked by the curriculum)
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-- **Vocareum-compatible** — runs in the cohort lab environment
-- **OpenAI API only** — no Anthropic, no local models in MP1
-- **Default model: gpt-4o-mini** — `gpt-4o` used only for the LLM-as-judge step
-- **British spelling** throughout cohort-facing docs
+## Configure the environment
 
----
+Create a `.env` file in the project root, next to `requirements.txt`:
 
-*Six mini projects total across the 30-week programme. MP1 sits here, in W5.*
+```dotenv
+OPENAI_API_KEY=your_api_key
+OPENAI_BASE_URL=https://openai.com/v1
+```
+
+`OPENAI_BASE_URL` is optional; the script defaults to the URL shown above. Set it to the endpoint for your API provider if different. Keep `.env` private and do not commit credentials.
+
+## Run
+
+From the project root:
+
+```powershell
+python learner\MP1_Starter_Template.py
+```
+
+If you did not activate the virtual environment, use its interpreter directly:
+
+```powershell
+.\.venv\Scripts\python.exe learner\MP1_Starter_Template.py
+```
+
+The script locates the `data` directory relative to its own file, so it does not depend on the current working directory. It prints the number of loaded snippets and scored results, followed by the comparison summary. It does not save the results to a file.
+
+## Understanding the summary
+
+| Column | Meaning |
+|---|---|
+| Accuracy (mean of 3) | Average number of exact field matches, from 0 to 3 |
+| Parse rate | Fraction of responses parsed as JSON objects |
+| Judge score | Mean judge score, from 1 to 4 |
+| Total cost ($) | Estimated cost of extraction calls only |
+| Latency p50 (s) | Median extraction latency in seconds |
+
+With the provided 10 snippets, the script makes 40 extraction requests (10 snippets × 4 strategies), followed by one judge request per result.
+
+## Troubleshooting
+
+- **Missing API key:** confirm `.env` is in the project root and contains `OPENAI_API_KEY`.
+- **Missing data file:** confirm both JSONL files are in the root `data` directory.
+- **Import error:** activate the virtual environment and install `requirements.txt`.
+- **Authentication or connection error:** check the API key and, if necessary, set `OPENAI_BASE_URL` to the correct endpoint.
